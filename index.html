@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chatbot.ai</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #121212;
+      color: #E0E0E0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #chat-container {
+      width: 100%;
+      max-width: 420px;
+      height: 90vh; /* <-- add height constraint */
+      background: #1E1E1E;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    header {
+      padding: 16px;
+      background: #272727;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    header h2 {
+      font-size: 1.25rem;
+      color: #FAFAFA;
+    }
+    header small {
+      margin-left: auto;
+      color: #BBB;
+      font-size: 0.85rem;
+    }
+
+    #messages {
+      flex: 1;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto; /* <-- crucial for scroll */
+      scroll-behavior: smooth;
+    }
+
+    .msg {
+      padding: 12px 16px;
+      border-radius: 20px;
+      max-width: 75%;
+      line-height: 1.5;
+      animation: fadeIn 0.2s ease-in;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+    .user {
+      align-self: flex-end;
+      background: #0052CC;
+      color: #FFF;
+      border-bottom-right-radius: 4px;
+    }
+    .bot {
+      align-self: flex-start;
+      background: #333;
+      color: #E0E0E0;
+      border-bottom-left-radius: 4px;
+    }
+    .msg h3 {
+      margin-bottom: 6px;
+      font-size: 1rem;
+      color: #FFF;
+    }
+    .msg h4 {
+      margin-bottom: 4px;
+      font-size: 0.95rem;
+      color: #DDD;
+    }
+    .msg ul {
+      margin: 6px 0 0 16px;
+    }
+    .msg li {
+      margin-bottom: 4px;
+      font-size: 0.9rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #input-area {
+      padding: 12px;
+      background: #272727;
+      display: flex;
+      gap: 8px;
+    }
+
+    #input-area textarea {
+      flex: 1;
+      height: 48px;
+      padding: 8px;
+      border: none;
+      border-radius: 8px;
+      background: #1E1E1E;
+      color: #E0E0E0;
+      resize: none;
+      font-size: 0.95rem;
+    }
+
+    #input-area textarea:focus {
+      outline: 2px solid #0052CC;
+    }
+
+    #input-area button {
+      background: #0052CC;
+      color: #FFF;
+      border: none;
+      border-radius: 8px;
+      padding: 0 16px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    #input-area button:hover {
+      background: #006BFF;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-container">
+    <header>
+      <span style="font-size:1.5rem;">🤖</span>
+      <h2>Instant chatbot.AI 💡</h2>
+      <small>Avg. 10 sec reply</small>
+    </header>
+    <div id="messages"></div>
+    <div id="input-area">
+      <textarea id="message-input" placeholder="Type your question... (Ctrl+Enter for newline)"></textarea>
+      <button id="send-btn">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    function addMessage(html, sender) {
+      const div = document.createElement('div');
+      div.classList.add('msg', sender);
+      div.innerHTML = html;  // allow HTML formatting
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+      addMessage(`<p>${text}</p>`, 'user');
+      inputEl.value = '';
+
+      try {
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        const json = await res.json();
+        addMessage(json.response, 'bot');
+      } catch (err) {
+        addMessage('<p>Oops, something went wrong. Please try again.</p>', 'bot');
+      }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    inputEl.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (e.ctrlKey) return; // allow newline
+        sendMessage();
+      }
+    });
+  </script>
+<script>
+  const messagesEl = document.getElementById('messages');
+  const inputEl = document.getElementById('message-input');
+  const sendBtn = document.getElementById('send-btn');
+
+  function addMessage(html, sender) {
+    const div = document.createElement('div');
+    div.classList.add('msg', sender);
+    div.innerHTML = html;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  // Simple Markdown-like to HTML converter
+  function formatResponse(text) {
+    let html = text
+      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+      .replace(/^## (.*$)/gim, '<h3>$1</h3>')
+      .replace(/^# (.*$)/gim, '<h3>$1</h3>')
+      .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+      .replace(/\n\n/g, '<br/><br/>')
+      .replace(/\n/g, '<br/>')
+      .replace(/^\d+\.\s(.*$)/gim, '<li>$1</li>')
+      .replace(/^- (.*$)/gim, '<li>$1</li>');
+
+    // Wrap <li> in <ul> or <ol> if present
+    if (html.match(/<li>/)) {
+      const isOrdered = /^\d+\./.test(text.trim());
+      const wrapperTag = isOrdered ? 'ol' : 'ul';
+      html = html.replace(/(<li>.*?<\/li>)/gim, `$1`);
+      html = `<${wrapperTag}>${html}</${wrapperTag}>`;
+    }
+
+    return html;
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+    addMessage(`<p>${text}</p>`, 'user');
+    inputEl.value = '';
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+      });
+      const json = await res.json();
+      const formatted = formatResponse(json.response);
+      addMessage(formatted, 'bot');
+    } catch (err) {
+      addMessage('<p>Oops, something went wrong. Please try again.</p>', 'bot');
+    }
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (e.ctrlKey) return;
+      sendMessage();
+    }
+  });
+</script>
+
+</body>
+</html>
